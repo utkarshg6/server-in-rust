@@ -17,6 +17,8 @@ pub struct Request {
 impl TryFrom<&[u8]> for Request {
     // &[u8] is a byte slice
 
+    // Example Request - GET /search?name=abc&sort=1 HTTP/1.1
+
     // for keyword is used to extend the Request data type
     // It means any function defined in this trait can now
     // be called through a variable of type Request
@@ -26,6 +28,14 @@ impl TryFrom<&[u8]> for Request {
 
         let request = str::from_utf8(buf)?;
 
+        let (method, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
+        let (path, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
+        let (protocol, _) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
+
+        if protocol != "HTTP/1.1" {
+            return Err(ParseError::InvalidProtocol);
+        }
+
         unimplemented!()
     }
 }
@@ -33,12 +43,12 @@ impl TryFrom<&[u8]> for Request {
 fn get_next_word(request: &str) -> Option<(&str, &str)> {
 
     for (i, c) in request.chars().enumerate() {
-        if c == ' ' {
+        if c == ' ' || c == '\r' {
             return Some((&request[..i], &request[i+1..]))
         }
     }
 
-    unimplemented!()
+    None
 }
 
 pub enum ParseError {
