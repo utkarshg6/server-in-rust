@@ -1,18 +1,19 @@
-use std::str;
-use std::str::Utf8Error;
 use super::method::{Method, MethodError};
+use super::QueryString;
 use std::convert::TryFrom;
 use std::error::Error;
-use std::fmt::{Result as FmtResult, Display, Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
+use std::str;
+use std::str::Utf8Error;
 
 // An HTTP Request of different Methods like GET, PUT etc.
 pub struct Request<'buf> {
     path: &'buf str,
-    query_string: Option<&'buf str>,
+    query_string: Option<QueryString<'buf>>,
     method: Method,
 }
 
-// This is how type conversions are 
+// This is how type conversions are
 // meant to be implemented in Rust.
 impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
     // &[u8] is a byte slice
@@ -25,7 +26,6 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
     type Error = ParseError;
 
     fn try_from(buf: &'buf [u8]) -> Result<Request<'buf>, Self::Error> {
-
         let request = str::from_utf8(buf)?;
 
         let (method, request) = get_next_word(request).ok_or(ParseError::InvalidRequest)?;
@@ -41,24 +41,23 @@ impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
         let mut query_string = None;
 
         if let Some(i) = path.find('?') {
-            query_string = Some(&path[i+1..]);
+            query_string = Some(QueryString::from(&path[i + 1..]));
             path = &path[..i];
         }
 
         Ok(Self {
             path,
             query_string,
-            method
+            method,
         })
         // unimplemented!()
     }
 }
 
 fn get_next_word(request: &str) -> Option<(&str, &str)> {
-
     for (i, c) in request.chars().enumerate() {
         if c == ' ' || c == '\r' {
-            return Some((&request[..i], &request[i+1..]))
+            return Some((&request[..i], &request[i + 1..]));
         }
     }
 
@@ -74,7 +73,7 @@ pub enum ParseError {
 
 impl ParseError {
     fn message(&self) -> &str {
-        match(self) {
+        match (self) {
             Self::InvalidRequest => "InvalidRequest",
             Self::InvalidEncoding => "InvalidEncoding",
             Self::InvalidProtocol => "InvalidProtocol",
@@ -107,6 +106,4 @@ impl Debug for ParseError {
     }
 }
 
-impl Error for ParseError {
-
-}
+impl Error for ParseError {}
