@@ -6,6 +6,7 @@ use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 use std::str;
 use std::str::Utf8Error;
 
+#[derive(Debug)]
 // An HTTP Request of different Methods like GET, PUT etc.
 pub struct Request<'buf> {
     path: &'buf str,
