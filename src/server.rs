@@ -1,8 +1,17 @@
-use crate::http::{Request, Response, StatusCode};
+use crate::http::{ParseError, Request, Response, StatusCode};
 use std::convert::TryFrom; // To use the try_from function from Request we'll need to pull the whole TryFrom trait.
 use std::convert::TryInto;
 use std::io::{Write, Read};
 use std::net::TcpListener;
+
+pub trait Handler {
+    fn handle_request(&mut self, request: &Request) -> Response;
+
+    fn handle_bad_request(&mut self, e: &ParseError) -> Response {
+        println!("Failed to parse request: {}", e);
+        Response::new(StatusCode::BadRequest, None)
+    }
+}
 
 pub struct Server {
     addr: String,
@@ -13,7 +22,7 @@ impl Server {
         Self { addr }
     }
 
-    pub fn run(self) {
+    pub fn run(self, mut handler: impl Handler) {
         println!("Listening on {}", self.addr);
 
         // If the result is OK, it'll unwrap the result into variable
@@ -30,18 +39,20 @@ impl Server {
 
                             let response = match Request::try_from(&buffer[..]) {
                                 Ok(request) => {
-                                    dbg!(request);
-                                    Response::new(
-                                        StatusCode::Ok,
-                                        Some("<h1>It works too!!!</h1>".to_string()),    
-                                    )
+                                    handler.handle_request(&request)
+                                    // dbg!(request);
+                                    // Response::new(
+                                    //     StatusCode::Ok,
+                                    //     Some("<h1>It works too!!!</h1>".to_string()),    
+                                    // )
                                 }
                                 Err(e) => {
-                                    println!("Failed to parse a request: {}", e);
-                                    Response::new(
-                                        StatusCode::BadRequest,
-                                        None,
-                                    )
+                                    handler.handle_bad_request(&e)
+                                    // println!("Failed to parse a request: {}", e);
+                                    // Response::new(
+                                    //     StatusCode::BadRequest,
+                                    //     None,
+                                    // )
                                 }
                             };
 
