@@ -14,6 +14,24 @@ pub struct Request<'buf> {
     method: Method,
 }
 
+impl<'buf> Request<'buf>{
+    // Since the functions are private we'll need to implement
+    // getter functions to retreive the information.
+    // In rust we don't use "get" as a prefix in getter fns.
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn method(&self) -> &Method {
+        &self.method
+    }
+
+    pub fn query_string(&self) -> Option<&QueryString> {
+        self.query_string.as_ref()
+    }
+}
+
 // This is how type conversions are
 // meant to be implemented in Rust.
 impl<'buf> TryFrom<&'buf [u8]> for Request<'buf> {
